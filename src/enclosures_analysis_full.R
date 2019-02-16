@@ -16,10 +16,10 @@ library(gridExtra)
 
 
 path <- file.path("data", "data-keyed.csv")
-data.keyed <- fread(path,header=TRUE)
+data_keyed <- fread(path,header=TRUE)
 
 # set column types
-data.keyed <- data.keyed %>%
+data_keyed <- data_keyed %>%
   as.tbl() %>%
   mutate(TimeCat = factor(Time, labels = c("May 5 2016", "May 15 2016", "May 27 2016", "June 9 2016")),
          TimeCat = mdy(TimeCat),
@@ -31,11 +31,11 @@ data.keyed <- data.keyed %>%
   arrange(TimeCat, block)
 
 # count days since salamander introduction
-data.keyed$days <- data.keyed$Time
-data.keyed$days[which(data.keyed$Time==1)]<-5
-data.keyed$days[which(data.keyed$Time==2)]<-15
-data.keyed$days[which(data.keyed$Time==3)]<-27
-data.keyed$days[which(data.keyed$Time==4)]<-40
+data_keyed$days <- data_keyed$Time
+data_keyed$days[which(data_keyed$Time==1)]<-5
+data_keyed$days[which(data_keyed$Time==2)]<-15
+data_keyed$days[which(data_keyed$Time==3)]<-27
+data_keyed$days[which(data_keyed$Time==4)]<-40
 
 # path <- file.path("data", "mesozoop1234.csv")
 # rawcounts <- fread(path, header=TRUE)
@@ -57,60 +57,60 @@ colnames(water_depths) <- tolower(colnames(water_depths))
 # make block a factor
 water_depths$block <- as.factor(water_depths$block)
 
-# extract initial depths from water_depths, append to data.keyed
-depth.init<-unlist(c(subset(water_depths, select = "depth_may5"),
+# extract initial depths from water_depths, append to data_keyed
+depth_init<-unlist(c(subset(water_depths, select = "depth_may5"),
                       subset(water_depths, select = "depth_may15-pre"),
                       subset(water_depths, select = "depth_may27-pre"),
                       subset(water_depths, select = "depth_jun9-pre")))
-data.keyed$depth.init <- depth.init
+data_keyed$depth_init <- depth_init
 
-rm(water_depths, depth.init)
+rm(water_depths, depth_init)
 
 # use depths to calculate volumes of water in enclosures
-data.keyed$vol.pre <- volume(data.keyed$depth.init)
+data_keyed$vol_pre <- volume(data_keyed$depth_init)
 
 # back-check new.depth fxn with example values: do I get the correct sample volume left over?
 depth <- 10
-sample.volume <- 500
-old.vol <- volume(d = depth)
-new.vol <- new.depth(d.start = depth, v.sample = sample.volume) %>% numeric.depth() %>% volume()
-sample.est <- old.vol - new.vol
-sample.est # compare to sample.volume = 500
+sample_volume <- 500
+old_vol <- volume(d = depth)
+new_vol <- new.depth(d.start = depth, v.sample = sample_volume) %>% numeric.depth() %>% volume()
+sample_est <- old_vol - new_vol
+sample_est # compare to sample_volume = 500
 # good, within 0.1%
-rm(depth, sample.volume, old.vol, new.vol, sample.est)
+rm(depth, sample_volume, old_vol, new_vol, sample_est)
 
 # calculate sample volumes for all samples - initially INCORRECT for manual treatments
-data.keyed$sample.vol.flush <- lapply(data.keyed$depth.init, FUN = sample.vol.flush)
-data.keyed$sample.vol.hi <- lapply(data.keyed$depth.init, FUN = sample.vol.hi)
+data_keyed$sample_vol_flush <- lapply(data_keyed$depth_init, FUN = sample.vol.flush)
+data_keyed$sample_vol_hi <- lapply(data_keyed$depth_init, FUN = sample.vol.hi)
 
 # identify the manual treatments
-man.buckets <- which(data.keyed$treatment == "Manual")
+man_buckets <- which(data_keyed$treatment == "Manual")
 # calculate correctly, 6 dips per sample
-data.keyed$sample.vol.flush[man.buckets] <- lapply(X = data.keyed$depth.init[man.buckets], 
+data_keyed$sample_vol_flush[man_buckets] <- lapply(X = data_keyed$depth_init[man_buckets], 
                                                    FUN = sample.vol.flush, ndips = 6)
-data.keyed$sample.vol.hi[man.buckets] <- lapply(X = data.keyed$depth.init[man.buckets], 
+data_keyed$sample_vol_hi[man_buckets] <- lapply(X = data_keyed$depth_init[man_buckets], 
                                                 FUN = sample.vol.hi, ndips = 6)
 
-rm(man.buckets)
+rm(man_buckets)
 
-data.keyed$sample.vol.flush <- unlist(data.keyed$sample.vol.flush)
-data.keyed$sample.vol.hi <- unlist(data.keyed$sample.vol.hi)
+data_keyed$sample_vol_flush <- unlist(data_keyed$sample_vol_flush)
+data_keyed$sample_vol_hi <- unlist(data_keyed$sample_vol_hi)
 
-data.keyed <- data.keyed %>% 
-  mutate(sample.frac = sample.vol.flush / vol.pre,
-         vol.post = vol.pre - sample.vol.flush)
+data_keyed <- data_keyed %>% 
+  mutate(sample_frac = sample_vol_flush / vol_pre,
+         vol_post = vol_pre - sample_vol_flush)
 
 depths <- numeric(length = 120)
 
 # calculate enclosure depth following each sampling run
 for (i in 1:120) {
-  depths[i] <- numeric.depth(new.depth(data.keyed$depth.init[i], data.keyed$sample.vol.flush[i]))
+  depths[i] <- new.depth(data_keyed$depth_init[i], data_keyed$sample_vol_flush[i]) %>% numeric.depth()
 }
 
-data.keyed$depth.post <- depths
+data_keyed$depth_post <- depths
 rm(depths, path)
 
-data.zoop <- data.keyed %>%
+data_zoop <- data_keyed %>%
   select(-`adult coleopteran`,
          -Hebridae,
          -Isotomidae,
@@ -128,28 +128,28 @@ data.zoop <- data.keyed %>%
          -`unknown Heteroptera 3`,
          -`unknown Heteroptera 4`,
          -`unknown Heteroptera 5`) %>%
-  rename(Candona.sp.1 = 'Candona sp 1',
-         Candona.sp.2 = 'Candona sp 2',
+  rename(Candona_sp_1 = 'Candona sp 1',
+         Candona_sp_2 = 'Candona sp 2',
          Pleuroxus.denticulatus = 'Pleuroxus denticulatus',
-         unknown.rotifer.1 = 'unknown Rotifer 1')
+         unknown_rotifer_1 = 'unknown Rotifer 1')
 
-names(data.zoop)
+names(data_zoop)
 
 # recalculate indices
-data.zoop$nTot <- rowSums(data.zoop[,2:18]) # columns 2:18 are individual taxon counts after restriction
-data.zoop$richness <- rowSums(data.zoop[,2:18] != 0)
-data.zoop$InvSimpson <- 1 / rowSums((data.zoop[,2:18] / data.zoop$nTot) ^2)
-data.zoop$evenness <- data.zoop$InvSimpson / data.zoop$richness
+data_zoop$nTot <- rowSums(data_zoop[,2:18]) # columns 2:18 are individual taxon counts after restriction
+data_zoop$richness <- rowSums(data_zoop[,2:18] != 0)
+data_zoop$InvSimpson <- 1 / rowSums((data_zoop[,2:18] / data_zoop$nTot) ^2)
+data_zoop$evenness <- data_zoop$InvSimpson / data_zoop$richness
 
-data.zoop$z.density <- data.zoop$nTot / data.zoop$sample.vol.flush
+data_zoop$z_density <- data_zoop$nTot / data_zoop$sample_vol_flush
 
-data.keyed$z.density <- data.keyed$nTot / data.keyed$sample.vol.flush
+data_keyed$z_density <- data_keyed$nTot / data_keyed$sample_vol_flush
 
 # restrict data to stocked spp only
-data.seeded <- data.zoop %>%
+data_seeded <- data_zoop %>%
   select(-Asplanchna,
-         -Candona.sp.1,
-         -Candona.sp.2,
+         -Candona_sp_1,
+         -Candona_sp_2,
          -Euchlanis,
          -Keratella,
          -Lecane,
@@ -157,20 +157,20 @@ data.seeded <- data.zoop %>%
          -Pleuroxus.denticulatus,
          -Scapholeberis,
          -Trichocerca,
-         -unknown.rotifer.1)
-head(data.seeded)
+         -unknown_rotifer_1)
+head(data_seeded)
 
 # recalculate indices
-data.seeded$nTot <- rowSums(data.seeded[,2:7]) # columns 2:7 are individual taxon counts after restriction
-data.seeded$richness <- rowSums(data.seeded[,2:7] != 0)
-data.seeded$InvSimpson <- 1 / rowSums((data.seeded[,2:7] / data.seeded$nTot)^2)
-data.seeded <- data.seeded %>% mutate(evenness = InvSimpson / richness,
-                                      z.density = nTot / sample.vol.flush)
+data_seeded$nTot <- rowSums(data_seeded[,2:7]) # columns 2:7 are individual taxon counts after restriction
+data_seeded$richness <- rowSums(data_seeded[,2:7] != 0)
+data_seeded$InvSimpson <- 1 / rowSums((data_seeded[,2:7] / data_seeded$nTot)^2)
+data_seeded <- data_seeded %>% mutate(evenness = InvSimpson / richness,
+                                      z_density = nTot / sample_vol_flush)
 
 
 ### Rarefaction ----
 
-data.zoop %>%
+data_zoop %>%
   group_by(TimeCat) %>%
   summarise(min = min(nTot),
             mean = mean(nTot),
@@ -178,62 +178,62 @@ data.zoop %>%
             max = max(nTot))
 
 # extract just the counts of animals
-community.keyed <- data.keyed[,2:35]
-community.zoop <- data.zoop[,2:18]
-community.stock <- data.seeded[,2:7]
+community_keyed <- data_keyed[,2:35]
+community_zoop <- data_zoop[,2:18]
+community_stock <- data_seeded[,2:7]
 
-rarecurve(community.zoop, step = 20, sample = 100, col = "blue")
+rarecurve(community_zoop, step = 20, sample = 100, col = "blue")
 
 # rarefy richness to the minimum # of animals in each time step
-rarefy1 <- rarefy(community.keyed, sample = min(data.keyed[data.keyed$Time == 1, 38]))
-rarefy2 <- rarefy(community.keyed, sample = min(data.keyed[data.keyed$Time == 2, 38]))
-rarefy3 <- rarefy(community.keyed, sample = min(data.keyed[data.keyed$Time == 3, 38]))
-rarefy4 <- rarefy(community.keyed, sample = min(data.keyed[data.keyed$Time == 4, 38]))
+rarefy1 <- rarefy(community_keyed, sample = min(data_keyed[data_keyed$Time == 1, 38]))
+rarefy2 <- rarefy(community_keyed, sample = min(data_keyed[data_keyed$Time == 2, 38]))
+rarefy3 <- rarefy(community_keyed, sample = min(data_keyed[data_keyed$Time == 3, 38]))
+rarefy4 <- rarefy(community_keyed, sample = min(data_keyed[data_keyed$Time == 4, 38]))
 
 # extract rarefied richness from each time step, combine into single vector
 # using single lowest sample size
 rar.S33 <- rarefy1
-data.keyed$rarefied.S33 <- rar.S33
+data_keyed$rarefied_S33 <- rar.S33
 
 # using lowest sample size for each time step
 rar.S <- unlist(c(rarefy1[1:30], rarefy2[31:60], rarefy3[61:90], rarefy4[91:120])) 
-data.keyed$rarefied.S <- rar.S
+data_keyed$rarefied_S <- rar.S
 
 # rarefy richness to the minimum # of animals in each time step
-rarefy1 <- rarefy(community.zoop, sample = min(data.zoop[data.zoop$Time == 1, 21]))
-rarefy2 <- rarefy(community.zoop, sample = min(data.zoop[data.zoop$Time == 2, 21]))
-rarefy3 <- rarefy(community.zoop, sample = min(data.zoop[data.zoop$Time == 3, 21]))
-rarefy4 <- rarefy(community.zoop, sample = min(data.zoop[data.zoop$Time == 4, 21]))
+rarefy1 <- rarefy(community_zoop, sample = min(data_zoop[data_zoop$Time == 1, 21]))
+rarefy2 <- rarefy(community_zoop, sample = min(data_zoop[data_zoop$Time == 2, 21]))
+rarefy3 <- rarefy(community_zoop, sample = min(data_zoop[data_zoop$Time == 3, 21]))
+rarefy4 <- rarefy(community_zoop, sample = min(data_zoop[data_zoop$Time == 4, 21]))
 
 # extract rarefied richness from each time step, combine into single vector
 # using single lowest sample size
 rar.S33 <- rarefy1
-data.zoop$rarefied.S33 <- rar.S33
+data_zoop$rarefied_S33 <- rar.S33
 
 # using lowest sample size for each time step
 rar.S <- unlist(c(rarefy1[1:30], rarefy2[31:60], rarefy3[61:90], rarefy4[91:120])) 
-data.zoop$rarefied.S <- rar.S
+data_zoop$rarefied_S <- rar.S
 
 # rarefy richness to the minimum # of animals in each time step
-rarefy1 <- rarefy(community.stock, sample = min(data.seeded[data.seeded$Time == 1, 10]))
-rarefy2 <- rarefy(community.stock, sample = min(data.seeded[data.seeded$Time == 2, 10]))
-rarefy3 <- rarefy(community.stock, sample = min(data.seeded[data.seeded$Time == 3, 10]))
-rarefy4 <- rarefy(community.stock, sample = min(data.seeded[data.seeded$Time == 4, 10]))
+rarefy1 <- rarefy(community_stock, sample = min(data_seeded[data_seeded$Time == 1, 10]))
+rarefy2 <- rarefy(community_stock, sample = min(data_seeded[data_seeded$Time == 2, 10]))
+rarefy3 <- rarefy(community_stock, sample = min(data_seeded[data_seeded$Time == 3, 10]))
+rarefy4 <- rarefy(community_stock, sample = min(data_seeded[data_seeded$Time == 4, 10]))
 
 # extract rarefied richness from each time step, combine into single vector
 rar.S <- unlist(c(rarefy1[1:30], rarefy2[31:60], rarefy3[61:90], rarefy4[91:120])) 
-data.seeded$rarefied.S <- rar.S
+data_seeded$rarefied_S <- rar.S
 
 rm(rar.S, rar.S33, rarefy1, rarefy2, rarefy3, rarefy4)
-rm(community.keyed, community.zoop, community.stock)
+rm(community_keyed, community_zoop, community_stock)
 
 ### CV Analysis ----
 
 # create data frame of CV of each enclosure across the 4 time steps
-cvs.enclosure <- data.zoop %>%
+cvs.enclosure <- data_zoop %>%
   select(Asplanchna:block) %>%
   group_by(treatment, block) %>%
-  summarise_at(vars(Asplanchna:unknown.rotifer.1), ~ sd(.)/mean(.))
+  summarise_at(vars(Asplanchna:unknown_rotifer_1), ~ sd(.)/mean(.))
 
 cvs.enclosure
 
@@ -282,10 +282,10 @@ ggplot(cvs.enclosure.long, aes(x = treatment, y = CV, color = species, group = s
 
 
 # get CVs of diversity indices
-cvs.diversity <- data.zoop %>%
-  select(treatment:InvSimpson, evenness:rarefied.S) %>%
+cvs.diversity <- data_zoop %>%
+  select(treatment:InvSimpson, evenness:rarefied_S) %>%
   group_by(treatment, block) %>%
-  summarise_at(vars(richness:rarefied.S), ~ sd(.)/mean(.))
+  summarise_at(vars(richness:rarefied_S), ~ sd(.)/mean(.))
 
 cvs.diversity
 
@@ -297,7 +297,7 @@ m2<-lm(cbind(Chydorus,Cyclocypris,Cyclopoid,Cypricercus,Harpacticoid,Simocephalu
              Keratella)~treatment,data=cvs.enclosure)
 car::Manova(m2)
 
-m3<-aov(z.density~treatment,data=cvs.diversity)
+m3<-aov(z_density~treatment,data=cvs.diversity)
 m4<-aov(richness~treatment,data=cvs.diversity)
 m5<-aov(InvSimpson~treatment,data=cvs.diversity)
 m6<-aov(evenness~treatment,data=cvs.diversity)
@@ -308,15 +308,15 @@ anova(m5)
 anova(m6)
 
 car::Manova(lm(cbind(richness, InvSimpson, evenness) ~ treatment, data = cvs.diversity))
-SimTestDiff(resp = c("z.density","richness","InvSimpson","evenness"),
+SimTestDiff(resp = c("z_density","richness","InvSimpson","evenness"),
             data = as.data.frame(cvs.diversity), grp = "treatment", type="Tukey")
 
 TukeyHSD(m4)
 TukeyHSD(m5)
 TukeyHSD(m6)
 
-bwplot(z.density ~ treatment, data = cvs.diversity, ylab = "CV zooplankton density (#/mL)")
-bwplot(richness ~ treatment, data = cvs.diversity, ylab = "CV richness") # was rarefied.S
+bwplot(z_density ~ treatment, data = cvs.diversity, ylab = "CV zooplankton density (#/mL)")
+bwplot(richness ~ treatment, data = cvs.diversity, ylab = "CV richness") # was rarefied_S
 bwplot(InvSimpson ~ treatment, data = cvs.diversity, ylab = "CV inverse Simpson's D")
 bwplot(evenness ~ treatment, data = cvs.diversity, ylab = "CV Simpson's E")
 
@@ -387,124 +387,124 @@ rm(cv.D, cv.E, cv.plot, cvD, cvE, dodge)
 
 
 # ## convert sample abundance to sample density - assuming sampler skirt was FLUSH not high
-# community.keyed <- community.keyed / data.keyed$sample.vol.flush * data.keyed$vol.pre
-# community.zoop <- community.zoop / data.zoop$sample.vol.flush * data.zoop$vol.pre
-# community.stock <- community.stock / data.seeded$sample.vol.flush * data.seeded$vol.pre
+# community_keyed <- community_keyed / data_keyed$sample_vol_flush * data_keyed$vol_pre
+# community_zoop <- community_zoop / data_zoop$sample_vol_flush * data_zoop$vol_pre
+# community_stock <- community_stock / data_seeded$sample_vol_flush * data_seeded$vol_pre
 
 ### summary visualizations ----
 
 ## lattice plots of effects across blocks ----
 # export xyplots in 1024*600
 
-xyplot(nTot ~ TimeCat | block + treatment, data = data.keyed, type = c("b"))
-xyplot(nTot ~ TimeCat | block + treatment, data = data.zoop, type = c("b"))
-xyplot(nTot ~ TimeCat | block + treatment, data = data.seeded, type = c("b"))
+xyplot(nTot ~ TimeCat | block + treatment, data = data_keyed, type = c("b"))
+xyplot(nTot ~ TimeCat | block + treatment, data = data_zoop, type = c("b"))
+xyplot(nTot ~ TimeCat | block + treatment, data = data_seeded, type = c("b"))
 
-xyplot(z.density ~ TimeCat | block + treatment, data = data.zoop, type = c("b"))
+xyplot(z_density ~ TimeCat | block + treatment, data = data_zoop, type = c("b"))
 
-xyplot(richness ~ TimeCat | block + treatment, data = data.keyed, type=c("b")) # all taxa
-xyplot(richness ~ TimeCat | block + treatment, data = data.zoop, type=c("b")) # zoop only
-xyplot(richness ~ TimeCat | block + treatment, data = data.seeded, type=c("b")) # stocked spp only
+xyplot(richness ~ TimeCat | block + treatment, data = data_keyed, type=c("b")) # all taxa
+xyplot(richness ~ TimeCat | block + treatment, data = data_zoop, type=c("b")) # zoop only
+xyplot(richness ~ TimeCat | block + treatment, data = data_seeded, type=c("b")) # stocked spp only
 
-xyplot(InvSimpson ~ TimeCat | block + treatment, data = data.keyed, type=c("b"))  # all taxa
-xyplot(InvSimpson ~ TimeCat | block + treatment, data = data.zoop, type=c("b")) # zoop only
-xyplot(InvSimpson ~ TimeCat | block + treatment, data = data.seeded, type=c("b")) # stocked spp only
+xyplot(InvSimpson ~ TimeCat | block + treatment, data = data_keyed, type=c("b"))  # all taxa
+xyplot(InvSimpson ~ TimeCat | block + treatment, data = data_zoop, type=c("b")) # zoop only
+xyplot(InvSimpson ~ TimeCat | block + treatment, data = data_seeded, type=c("b")) # stocked spp only
 
 ## lattice box-and-whisker plots, summarizing by treatment ----
 
 # stocked spp only
-bwplot(nTot ~ as.factor(TimeCat) | treatment, data=data.seeded, aspect=2, main = "Stocked species") # abundance
-bwplot(z.density ~ as.factor(TimeCat) | treatment, data=data.seeded, aspect=2, main = "Stocked species") # density
-bwplot(log(z.density) ~ as.factor(TimeCat) | treatment, data=data.seeded, aspect=2, main = "Stocked species") # log density
-bwplot(richness ~ as.factor(TimeCat) | treatment, data=data.seeded, aspect=2) # Richness
-bwplot(rarefied.S ~ as.factor(TimeCat) | treatment, data=data.seeded, aspect=2, main = "Stocked species") # density
-bwplot(InvSimpson ~ as.factor(TimeCat) | treatment, data=data.seeded, aspect=2) # Inverse Simpson's D
-bwplot(InvSimpson / richness ~ as.factor(TimeCat) | treatment, data=data.seeded, aspect=2) # Simpson's E
-bwplot(InvSimpson / rarefied.S ~ as.factor(TimeCat) |treatment, data=data.seeded, aspect=2) # rarefied Simpson's E
+bwplot(nTot ~ as.factor(TimeCat) | treatment, data=data_seeded, aspect=2, main = "Stocked species") # abundance
+bwplot(z_density ~ as.factor(TimeCat) | treatment, data=data_seeded, aspect=2, main = "Stocked species") # density
+bwplot(log(z_density) ~ as.factor(TimeCat) | treatment, data=data_seeded, aspect=2, main = "Stocked species") # log density
+bwplot(richness ~ as.factor(TimeCat) | treatment, data=data_seeded, aspect=2) # Richness
+bwplot(rarefied_S ~ as.factor(TimeCat) | treatment, data=data_seeded, aspect=2, main = "Stocked species") # density
+bwplot(InvSimpson ~ as.factor(TimeCat) | treatment, data=data_seeded, aspect=2) # Inverse Simpson's D
+bwplot(InvSimpson / richness ~ as.factor(TimeCat) | treatment, data=data_seeded, aspect=2) # Simpson's E
+bwplot(InvSimpson / rarefied_S ~ as.factor(TimeCat) |treatment, data=data_seeded, aspect=2) # rarefied Simpson's E
 
 # zoop only
-bwplot(nTot~as.factor(TimeCat)|treatment, data=data.zoop, aspect=2,main="zooplankton") # abundance
-bwplot(z.density~as.factor(TimeCat)|treatment, data=data.zoop, aspect=2,main="zooplankton") # log density
-bwplot(log(z.density)~as.factor(TimeCat)|treatment, data=data.zoop, aspect=2,main="zooplankton") # density
-bwplot(richness~as.factor(TimeCat)|treatment, data=data.zoop, aspect=2) # Richness
-bwplot(rarefied.S~as.factor(TimeCat)|treatment, data=data.zoop, aspect=2) # Richness
-bwplot(InvSimpson~as.factor(TimeCat)|treatment, data=data.zoop, aspect=2) # Inverse Simpson's D
-bwplot(InvSimpson/richness~as.factor(TimeCat)|treatment, data=data.zoop, aspect=2) # Simpson's E
-bwplot(InvSimpson/rarefied.S~as.factor(TimeCat)|treatment, data=data.zoop, aspect=2) # rarefied Simpson's E
+bwplot(nTot~as.factor(TimeCat)|treatment, data=data_zoop, aspect=2,main="zooplankton") # abundance
+bwplot(z_density~as.factor(TimeCat)|treatment, data=data_zoop, aspect=2,main="zooplankton") # log density
+bwplot(log(z_density)~as.factor(TimeCat)|treatment, data=data_zoop, aspect=2,main="zooplankton") # density
+bwplot(richness~as.factor(TimeCat)|treatment, data=data_zoop, aspect=2) # Richness
+bwplot(rarefied_S~as.factor(TimeCat)|treatment, data=data_zoop, aspect=2) # Richness
+bwplot(InvSimpson~as.factor(TimeCat)|treatment, data=data_zoop, aspect=2) # Inverse Simpson's D
+bwplot(InvSimpson/richness~as.factor(TimeCat)|treatment, data=data_zoop, aspect=2) # Simpson's E
+bwplot(InvSimpson/rarefied_S~as.factor(TimeCat)|treatment, data=data_zoop, aspect=2) # rarefied Simpson's E
 
 # all taxa
-bwplot(nTot~as.factor(TimeCat)|treatment, data=data.keyed, aspect=2) # abundance
-bwplot(z.density~as.factor(TimeCat)|treatment, data=data.keyed, aspect=2) # density
-bwplot(log(z.density)~as.factor(TimeCat)|treatment, data=data.keyed, aspect=2) # log density
-bwplot(richness~as.factor(TimeCat)|treatment, data=data.keyed, aspect=2) # Richness
-bwplot(rarefied.S~as.factor(TimeCat)|treatment, data=data.keyed, aspect=2) # Richness
-bwplot(InvSimpson~as.factor(TimeCat)|treatment, data=data.keyed, aspect=2) # Inverse Simpson's D
-bwplot(InvSimpson/richness~as.factor(TimeCat)|treatment, data=data.keyed, aspect=2) # Simpson's E
-bwplot(InvSimpson/rarefied.S~as.factor(TimeCat)|treatment, data=data.keyed, aspect=2) # rarefied Simpson's E
+bwplot(nTot~as.factor(TimeCat)|treatment, data=data_keyed, aspect=2) # abundance
+bwplot(z_density~as.factor(TimeCat)|treatment, data=data_keyed, aspect=2) # density
+bwplot(log(z_density)~as.factor(TimeCat)|treatment, data=data_keyed, aspect=2) # log density
+bwplot(richness~as.factor(TimeCat)|treatment, data=data_keyed, aspect=2) # Richness
+bwplot(rarefied_S~as.factor(TimeCat)|treatment, data=data_keyed, aspect=2) # Richness
+bwplot(InvSimpson~as.factor(TimeCat)|treatment, data=data_keyed, aspect=2) # Inverse Simpson's D
+bwplot(InvSimpson/richness~as.factor(TimeCat)|treatment, data=data_keyed, aspect=2) # Simpson's E
+bwplot(InvSimpson/rarefied_S~as.factor(TimeCat)|treatment, data=data_keyed, aspect=2) # rarefied Simpson's E
 
 ### view individual taxa ----
 
 ## view by block
-xyplot(Asplanchna~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(Candona.sp.1~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(Candona.sp.2~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(Chydorus~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(Cyclocypris~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(Cyclopoid~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(Cypricercus~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(Euchlanis~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(Harpacticoid~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(Isotomidae~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(Keratella~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(Lecane~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(Lepadella~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(Pleuroxus.denticulatus~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(Scapholeberis~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(Simocephalus~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(Sminthuridae~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(Trichocerca~TimeCat|block+treatment,data=data.zoop,type="b")
-xyplot(unknown.rotifer.1~TimeCat|block+treatment,data=data.zoop,type="b")
+xyplot(Asplanchna~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(Candona_sp_1~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(Candona_sp_2~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(Chydorus~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(Cyclocypris~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(Cyclopoid~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(Cypricercus~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(Euchlanis~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(Harpacticoid~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(Isotomidae~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(Keratella~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(Lecane~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(Lepadella~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(Pleuroxus.denticulatus~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(Scapholeberis~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(Simocephalus~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(Sminthuridae~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(Trichocerca~TimeCat|block+treatment,data=data_zoop,type="b")
+xyplot(unknown_rotifer_1~TimeCat|block+treatment,data=data_zoop,type="b")
 
 ## summarize by treatment
 
 # scale by nTot, or log transform the abundances (bounded by 0)
-bwplot(Asplanchna/nTot~as.factor(TimeCat)|treatment,data=data.zoop)
-bwplot(Candona.sp.1/nTot~as.factor(TimeCat)|treatment,data=data.zoop)
-bwplot(Candona.sp.2/nTot~as.factor(TimeCat)|treatment,data=data.zoop)
-bwplot(Chydorus/nTot~as.factor(TimeCat)|treatment,data=data.zoop) #this one
-bwplot(Chydorus/nTot~as.factor(TimeCat)|treatment,data=data.seeded) #this one
-bwplot(log(Chydorus)~as.factor(TimeCat)|treatment,data=data.zoop) #this one
-bwplot(log(Chydorus)~as.factor(TimeCat)|treatment,data=data.seeded) #this one
+bwplot(Asplanchna/nTot~as.factor(TimeCat)|treatment,data=data_zoop)
+bwplot(Candona_sp_1/nTot~as.factor(TimeCat)|treatment,data=data_zoop)
+bwplot(Candona_sp_2/nTot~as.factor(TimeCat)|treatment,data=data_zoop)
+bwplot(Chydorus/nTot~as.factor(TimeCat)|treatment,data=data_zoop) #this one
+bwplot(Chydorus/nTot~as.factor(TimeCat)|treatment,data=data_seeded) #this one
+bwplot(log(Chydorus)~as.factor(TimeCat)|treatment,data=data_zoop) #this one
+bwplot(log(Chydorus)~as.factor(TimeCat)|treatment,data=data_seeded) #this one
 
-bwplot(Cyclocypris/nTot~as.factor(TimeCat)|treatment,data=data.zoop)
-bwplot(Cyclocypris/nTot~as.factor(TimeCat)|treatment,data=data.seeded)
+bwplot(Cyclocypris/nTot~as.factor(TimeCat)|treatment,data=data_zoop)
+bwplot(Cyclocypris/nTot~as.factor(TimeCat)|treatment,data=data_seeded)
 
-bwplot(Cyclopoid/nTot~as.factor(TimeCat)|treatment,data=data.zoop) #this one
-bwplot(Cyclopoid/nTot~TimeCat|treatment,data=data.seeded) #this one
+bwplot(Cyclopoid/nTot~as.factor(TimeCat)|treatment,data=data_zoop) #this one
+bwplot(Cyclopoid/nTot~TimeCat|treatment,data=data_seeded) #this one
 
-bwplot(Cypricercus/nTot~as.factor(TimeCat)|treatment,data=data.zoop) #this one
-bwplot(Cypricercus/nTot~as.factor(TimeCat)|treatment,data=data.seeded) #this one
+bwplot(Cypricercus/nTot~as.factor(TimeCat)|treatment,data=data_zoop) #this one
+bwplot(Cypricercus/nTot~as.factor(TimeCat)|treatment,data=data_seeded) #this one
 
-bwplot(Euchlanis/nTot~as.factor(TimeCat)|treatment,data=data.zoop)
-bwplot(Harpacticoid/nTot~as.factor(TimeCat)|treatment,data=data.zoop) #this one
-bwplot(Harpacticoid/nTot~as.factor(TimeCat)|treatment,data=data.seeded) #this one
+bwplot(Euchlanis/nTot~as.factor(TimeCat)|treatment,data=data_zoop)
+bwplot(Harpacticoid/nTot~as.factor(TimeCat)|treatment,data=data_zoop) #this one
+bwplot(Harpacticoid/nTot~as.factor(TimeCat)|treatment,data=data_seeded) #this one
 
-bwplot(Isotomidae/nTot~as.factor(TimeCat)|treatment,data=data.zoop)
-bwplot(log(Keratella/sample.vol.flush)~as.factor(TimeCat)|treatment,data=data.zoop) #this one
-bwplot(Keratella/nTot~as.factor(TimeCat)|treatment,data=data.zoop) #this one
+bwplot(Isotomidae/nTot~as.factor(TimeCat)|treatment,data=data_zoop)
+bwplot(log(Keratella/sample_vol_flush)~as.factor(TimeCat)|treatment,data=data_zoop) #this one
+bwplot(Keratella/nTot~as.factor(TimeCat)|treatment,data=data_zoop) #this one
 
-bwplot(Lecane/nTot~as.factor(TimeCat)|treatment,data=data.zoop)
-bwplot(Lepadella/nTot~as.factor(TimeCat)|treatment,data=data.zoop) #this one
-bwplot(Pleuroxus.denticulatus/nTot~as.factor(TimeCat)|treatment,data=data.zoop) #sort-of?
-bwplot(Scapholeberis/nTot~as.factor(TimeCat)|treatment,data=data.zoop) #sort-of?
-bwplot(Simocephalus/sample.vol.flush~as.factor(TimeCat)|treatment,data=data.zoop) #this one
-bwplot(Simocephalus/nTot~as.factor(TimeCat)|treatment,data=data.zoop) #this one
-bwplot(Simocephalus/nTot~as.factor(TimeCat)|treatment,data=data.seeded) #this one
+bwplot(Lecane/nTot~as.factor(TimeCat)|treatment,data=data_zoop)
+bwplot(Lepadella/nTot~as.factor(TimeCat)|treatment,data=data_zoop) #this one
+bwplot(Pleuroxus.denticulatus/nTot~as.factor(TimeCat)|treatment,data=data_zoop) #sort-of?
+bwplot(Scapholeberis/nTot~as.factor(TimeCat)|treatment,data=data_zoop) #sort-of?
+bwplot(Simocephalus/sample_vol_flush~as.factor(TimeCat)|treatment,data=data_zoop) #this one
+bwplot(Simocephalus/nTot~as.factor(TimeCat)|treatment,data=data_zoop) #this one
+bwplot(Simocephalus/nTot~as.factor(TimeCat)|treatment,data=data_seeded) #this one
 
-bwplot(Trichocerca/nTot~as.factor(TimeCat)|treatment,data=data.zoop)
-bwplot(unknown.rotifer.1/nTot~as.factor(TimeCat)|treatment,data=data.zoop)
+bwplot(Trichocerca/nTot~as.factor(TimeCat)|treatment,data=data_zoop)
+bwplot(unknown_rotifer_1/nTot~as.factor(TimeCat)|treatment,data=data_zoop)
 
-by(data.zoop, list(data.zoop$TimeCat, data.zoop$treatment), function(x){
+by(data_zoop, list(data_zoop$TimeCat, data_zoop$treatment), function(x){
   y <- subset(x, select = c(Simocephalus))
   z <- subset(x, select = c(nTot))
   w <- y/z
@@ -519,14 +519,14 @@ by(data.zoop, list(data.zoop$TimeCat, data.zoop$treatment), function(x){
 # to compare chydorus, simocephalus, and keratella frequencies over time,
 # species counts must be gathered into a single column (i.e., long form table)
 
-data.zoop.long <- data.zoop %>% 
-  gather(key = "species", value = "count", Asplanchna:unknown.rotifer.1) %>%
-  select(V1:block, Time:TimeCat, sample.vol.flush, nTot, species, count) %>%
+data_zoop.long <- data_zoop %>% 
+  gather(key = "species", value = "count", Asplanchna:unknown_rotifer_1) %>%
+  select(V1:block, Time:TimeCat, sample_vol_flush, nTot, species, count) %>%
   filter(species %in% c("Chydorus", "Simocephalus", "Keratella")) %>%
   mutate(species.f = factor(species, levels = c("Simocephalus", "Chydorus", "Keratella")))
 
 # now plot frequency as species counts divided by enclosure totals (nTot)
-ggplot(data.zoop.long, aes(x = as.integer(TimeCat), y = count/nTot, color = treatment)) +
+ggplot(data_zoop.long, aes(x = as.integer(TimeCat), y = count/nTot, color = treatment)) +
   facet_wrap(. ~ species.f, nrow = 1) +
   stat_summary(fun.y = mean, geom = "point", position = dodge) +
   stat_summary(fun.y = mean, geom = "line", position = dodge) +
@@ -550,7 +550,7 @@ ggplot(data.zoop.long, aes(x = as.integer(TimeCat), y = count/nTot, color = trea
 
 # zooplankton only
 # subset just the individuals that appear in 5+ samples
-data.common <- subset(data.zoop, select = which(colSums(data.zoop[,1:18] != 0) > 4))
+data.common <- subset(data_zoop, select = which(colSums(data_zoop[,1:18] != 0) > 4))
 M <- cor(data.common[-seq(from=3, to=120, by=3),2:13]) # exclude salamander treatments
 corrplot(M, method = "circle", type = "upper", order = "hclust")
 corrplot(M, method = "circle", type = "upper", order = "AOE")
@@ -560,38 +560,38 @@ rm(data.common, M)
 ### Mixed Effects Modeling ----
 
 ### log(Density)
-dm1<- lmer(z.density~treatment * days + (1|block) + (1|TimeCat), data=data.zoop)
-dm2<- lmer(z.density~treatment + days + (1|block) + (1|TimeCat), data=data.zoop)
+dm1<- lmer(z_density~treatment * days + (1|block) + (1|TimeCat), data=data_zoop)
+dm2<- lmer(z_density~treatment + days + (1|block) + (1|TimeCat), data=data_zoop)
 (kr.b<-KRmodcomp(dm1, dm2)) # not significant, ok to remove the interaction
 
-dm3<- lmer(log(z.density)~days + (1|block) + (1|TimeCat), data=data.zoop)
+dm3<- lmer(log(z_density)~days + (1|block) + (1|TimeCat), data=data_zoop)
 (kr.b<-KRmodcomp(dm3, dm2)) # significant, don't remove treatment
 
-dm4<- lmer(log(z.density)~treatment + (1|block) + (1|TimeCat), data=data.zoop)
+dm4<- lmer(log(z_density)~treatment + (1|block) + (1|TimeCat), data=data_zoop)
 (kr.b<-KRmodcomp(dm4, dm2)) # significant, don't remove Time
 
 ## don't remove random effects since there's structure, but can still test it w/ a 
 #likelihood ratio test, i.e. simple ANOVA
 
 # block effect
-dm5<- lmer(z.density~treatment + Time + (1|TimeCat), data=data.zoop)
+dm5<- lmer(z_density~treatment + Time + (1|TimeCat), data=data_zoop)
 anova(dm2,dm5)
 # block effect significant
 
 # time effect
-dm6<- lmer(z.density~treatment + Time + (1|block), data=data.zoop)
+dm6<- lmer(z_density~treatment + Time + (1|block), data=data_zoop)
 anova(dm2,dm6)
 # time effect not significant
 
 summary(dm1)
 
 # visualize, export 600*450
-bwplot(log(z.density)~days|treatment,data=data.zoop, xlab=list(label="Treatment",cex=1.4),
+bwplot(log(z_density)~days|treatment,data=data_zoop, xlab=list(label="Treatment",cex=1.4),
        ylab=list(label="log zooplankton density (N/mL)",cex=1.4), scales=list(cex=1.1,x=list(rot=45)), 
        par.strip.text=list(cex=1.4))
 
 dodge=position_dodge(width=0.7)
-ggplot(data.zoop, aes(x=as.integer(TimeCat), y=z.density, color=treatment))+
+ggplot(data_zoop, aes(x=as.integer(TimeCat), y=z_density, color=treatment))+
   stat_summary(fun.y = mean,geom="point",size=2,position=dodge)+
   stat_summary(fun.y = mean,geom="line",aes(group=treatment),linetype=2,position=dodge)+
   stat_summary(fun.data = mean_se,geom="errorbar",width=0.7,position=dodge)+
@@ -612,17 +612,17 @@ ggplot(data.zoop, aes(x=as.integer(TimeCat), y=z.density, color=treatment))+
 rm(dm1, dm2, dm3, dm4, dm5, dm6, kr.b)
 
 ### Richness
-rm1<- lmer(richness~treatment * days + (1|block) + (1|TimeCat), data=data.zoop)
-rm2<- lmer(richness~treatment + days + (1|block) + (1|TimeCat), data=data.zoop)
+rm1<- lmer(richness~treatment * days + (1|block) + (1|TimeCat), data=data_zoop)
+rm2<- lmer(richness~treatment + days + (1|block) + (1|TimeCat), data=data_zoop)
 (kr.b<-KRmodcomp(rm1, rm2)) # not significant, ok to remove the interaction
 
-rm3<- lmer(richness~days + (1|block) + (1|TimeCat), data=data.zoop)
+rm3<- lmer(richness~days + (1|block) + (1|TimeCat), data=data_zoop)
 (kr.b<-KRmodcomp(rm3, rm2)) # significant, don't remove treatment
 
-rm4<- lmer(richness~treatment + (1|block) + (1|TimeCat), data=data.zoop)
+rm4<- lmer(richness~treatment + (1|block) + (1|TimeCat), data=data_zoop)
 (kr.b<-KRmodcomp(rm4, rm2)) # not significant, ok to remove Time
 
-rm5<- lmer(richness~1 + (1|block) + (1|TimeCat), data=data.zoop)
+rm5<- lmer(richness~1 + (1|block) + (1|TimeCat), data=data_zoop)
 (kr.b<-KRmodcomp(rm5, rm4)) # significant, still don't remove treatment
 
 summary(rm4)
@@ -636,7 +636,7 @@ rs$Treatment<-Treatment
 
 ## visualize
 
-ggplot(data.zoop, aes(x=richness,fill=treatment))+geom_density(alpha=0.3)+
+ggplot(data_zoop, aes(x=richness,fill=treatment))+geom_density(alpha=0.3)+
   ggtitle("Richness by Treatment, all zooplankton")+xlab("Richness")+theme_bw()
 
 
@@ -650,7 +650,7 @@ ggplot(rs, aes(x=Treatment, y=Mean, ymax=6.5,ymin=5))+
 
 
 # box-&-whiskers plot from lattice
-bwplot(richness~treatment, data=data.seeded,xlab=list(label="Treatment",cex=1.4),
+bwplot(richness~treatment, data=data_seeded,xlab=list(label="Treatment",cex=1.4),
        ylab=list(label="Richness",cex=1.4),scales=list(cex=1.1),
        par.strip.text=list(cex=1.3)) # Richness - export 450*450
 
@@ -660,8 +660,8 @@ rm(rm1, rm2, rm3, rm4, rm5, kr.b, Mean, SE, rs)
 # ## lmertest
 # # to test (fixed? random?) effects, turn off REML, use just max likelihood
 # # library(lmerTest)
-# rm1s<- lmer(richness~treatment * Time + (1|block) + (1|TimeCat), data=data.seeded)
-# rm1z<- lmer(richness~treatment * Time + (1|block) + (1|TimeCat), data=data.zoop)
+# rm1s<- lmer(richness~treatment * Time + (1|block) + (1|TimeCat), data=data_seeded)
+# rm1z<- lmer(richness~treatment * Time + (1|block) + (1|TimeCat), data=data_zoop)
 # 
 # summary(rm1s)
 # summary(rm1z)
@@ -678,8 +678,8 @@ rm(rm1, rm2, rm3, rm4, rm5, kr.b, Mean, SE, rs)
 # plot(st.1z)
 # st.1z
 # 
-# rm4s<- lmer(richness~treatment + (1|block) + (1|TimeCat), data=data.seeded)
-# rm4z<- lmer(richness~treatment + (1|block) + (1|TimeCat), data=data.zoop)
+# rm4s<- lmer(richness~treatment + (1|block) + (1|TimeCat), data=data_seeded)
+# rm4z<- lmer(richness~treatment + (1|block) + (1|TimeCat), data=data_zoop)
 # summary(rm4)
 # anova(rm4)
 # if(requireNamespace("pbkrtest", quietly = TRUE))
@@ -691,14 +691,14 @@ rm(rm1, rm2, rm3, rm4, rm5, kr.b, Mean, SE, rs)
 # plot(st4z)
 
 ### Rarefied richness
-rm1<- lmer(rarefied.S~treatment * days + (1|block) + (1|TimeCat), data=data.zoop)
-rm2<- lmer(rarefied.S~treatment + days + (1|block) + (1|TimeCat), data=data.zoop)
+rm1<- lmer(rarefied_S~treatment * days + (1|block) + (1|TimeCat), data=data_zoop)
+rm2<- lmer(rarefied_S~treatment + days + (1|block) + (1|TimeCat), data=data_zoop)
 (kr.b<-KRmodcomp(rm1, rm2)) # not significant, ok to remove the interaction
 
-rm3<- lmer(rarefied.S~days + (1|block) + (1|TimeCat), data=data.zoop)
+rm3<- lmer(rarefied_S~days + (1|block) + (1|TimeCat), data=data_zoop)
 (kr.b<-KRmodcomp(rm3, rm2)) # significant, don't remove treatment
 
-rm4<- lmer(rarefied.S~treatment + (1|block) + (1|TimeCat), data=data.zoop)
+rm4<- lmer(rarefied_S~treatment + (1|block) + (1|TimeCat), data=data_zoop)
 (kr.b<-KRmodcomp(rm4, rm2)) # not significant, ok to remove Time
 summary(rm4)
 
@@ -738,17 +738,17 @@ grid.arrange(rsa, rsb, nrow = 1)
 ## test random effects
 
 # block effect
-rm5<- lmer(rarefied.S~treatment + (1|TimeCat), data=data.zoop)
+rm5<- lmer(rarefied_S~treatment + (1|TimeCat), data=data_zoop)
 anova(rm4, rm5)
 # block effect significant
 
 # time effect
-rm6<- lmer(rarefied.S~treatment + (1|block), data=data.zoop)
+rm6<- lmer(rarefied_S~treatment + (1|block), data=data_zoop)
 anova(rm4,rm6)
 # time not significant
 
 ## visualize
-bwplot(rarefied.S~treatment, data=data.seeded,xlab=list(label="Treatment",cex=1.4),
+bwplot(rarefied_S~treatment, data=data_seeded,xlab=list(label="Treatment",cex=1.4),
        ylab=list(label="Rarefied richness",cex=1.4),scales=list(cex=1.1),
        par.strip.text=list(cex=1.3)) # Richness - export 450*450
 
@@ -756,19 +756,19 @@ rm(rm1, rm2, rm3, rm4, kr.b, Mean, SE, rs)
 rm(r.s, r.s.33, rsa, rsb)
 
 ### Inverse Simpson's D
-sm1<- lmer(InvSimpson~treatment * days + (1|block) + (1|TimeCat), data=data.zoop)
-sm2<- lmer(InvSimpson~treatment + days + (1|block) + (1|TimeCat), data=data.zoop)
+sm1<- lmer(InvSimpson~treatment * days + (1|block) + (1|TimeCat), data=data_zoop)
+sm2<- lmer(InvSimpson~treatment + days + (1|block) + (1|TimeCat), data=data_zoop)
 (kr.b<-KRmodcomp(sm1, sm2)) # significant, retain the interaction of treatment:Time
 
-sm3<-lmer(InvSimpson~days + (1|block) + (1|TimeCat), data=data.seeded)
+sm3<-lmer(InvSimpson~days + (1|block) + (1|TimeCat), data=data_seeded)
 (kr.b<-KRmodcomp(sm3, sm2)) # significant, retain treatment
 
-sm4<-lmer(InvSimpson~treatment + (1|block) + (1|TimeCat), data=data.seeded)
+sm4<-lmer(InvSimpson~treatment + (1|block) + (1|TimeCat), data=data_seeded)
 (kr.b<-KRmodcomp(sm4, sm2)) # not significant, remove time
 
 
-dm1s<- lmer(InvSimpson~treatment * Time + (1|block) + (1|TimeCat), data=data.seeded)
-dm1z<- lmer(InvSimpson~treatment * Time + (1|block) + (1|TimeCat), data=data.zoop)
+dm1s<- lmer(InvSimpson~treatment * Time + (1|block) + (1|TimeCat), data=data_seeded)
+dm1z<- lmer(InvSimpson~treatment * Time + (1|block) + (1|TimeCat), data=data_zoop)
 
 st.1d.s <- step(dm1s, ddf="Kenward-Roger")
 plot(st.1d.s)
@@ -783,16 +783,13 @@ anova(dm1z, ddf="Kenward-Roger")
 lsmeans(dm1z,list(pairwise~treatment),adjust="tukey")
 
 # # visualize: density plot
-# ggplot(data.zoop, aes(InvSimpson,fill=treatment))+geom_density(alpha=0.5)+facet_grid(.~Time*treatment)+
-#   ggtitle("Diversity by Treatment by Time, all zooplankton")+xlab("Diversity")+
-#   facet_wrap(facets=~Time*treatment,nrow=4)
 
 # box-&-whiskers plot from lattice
-bwplot(InvSimpson~TimeCat|treatment, data=data.zoop, aspect=2,xlab=list(label="Time",cex=1.4),
+bwplot(InvSimpson~TimeCat|treatment, data=data_zoop, aspect=2,xlab=list(label="Time",cex=1.4),
        ylab=list(label="Inverse Simpson's D",cex=1.4),scales=list(cex=1.1,x=list(rot=45)),
        par.strip.text=list(cex=1.4))
 
-bwplot(InvSimpson~TimeCat|treatment, data=data.seeded, aspect=2,xlab=list(label="Time",cex=1.4),
+bwplot(InvSimpson~TimeCat|treatment, data=data_seeded, aspect=2,xlab=list(label="Time",cex=1.4),
        ylab=list(label="Inverse Simpson's D",cex=1.4),scales=list(cex=1.1,x=list(rot=45)),
        par.strip.text=list(cex=1.4))
 
@@ -806,9 +803,9 @@ bwplot(InvSimpson~TimeCat|treatment, data=data.noKera, aspect=2,xlab=list(label=
 
 
 dodge = position_dodge(width=.7)
-breaks = unique(as.integer(data.zoop$TimeCat))
+breaks = unique(as.integer(data_zoop$TimeCat))
 
-ggplot(data.zoop, aes(x=as.integer(TimeCat), y=InvSimpson, color=treatment))+
+ggplot(data_zoop, aes(x=as.integer(TimeCat), y=InvSimpson, color=treatment))+
   stat_summary(fun.y = mean, geom="point", size=2, position=dodge)+
   stat_summary(fun.y = mean, geom="line", aes(group=treatment), linetype=2, position=dodge)+
   stat_summary(fun.data = mean_se, geom="errorbar", width=0.7, position=dodge)+
@@ -822,14 +819,14 @@ ggplot(data.zoop, aes(x=as.integer(TimeCat), y=InvSimpson, color=treatment))+
   theme_classic(base_size=18)+
   theme(axis.text.x = element_text(vjust=1, hjust = 1, angle = 45))
 
-ggplot(data.seeded, aes(x=treatment,y=InvSimpson))+
+ggplot(data_seeded, aes(x=treatment,y=InvSimpson))+
   stat_summary(fun.y = mean,geom="point",size=2)+
   stat_summary(fun.data = mean_se,geom="errorbar",width=0.05)+
   scale_x_discrete(name="Treatment",labels=rownames)+
   ylab("Inverse Simpson's D")+
   theme_bw(base_size=18)
   
-data.stock.noSimo<-data.seeded
+data.stock.noSimo<-data_seeded
 data.stock.noSimo$Simocephalus<-NULL
 data.stock.noSimo$nTot<-rowSums(data.stock.noSimo[,2:6]) # columns 2:17 are individual taxon counts after restriction
 data.stock.noSimo$InvSimpson<-1/rowSums((data.stock.noSimo[,2:6]/data.stock.noSimo$nTot)^2)
@@ -843,20 +840,20 @@ ggplot(data.stock.noSimo, aes(x=treatment,y=InvSimpson))+
 
 
 ### Evenness: Simpson's E
-data.zoop$evenness<-data.zoop$InvSimpson/data.zoop$richness
-em1<- lmer(evenness~treatment * days + (1|block) + (1|TimeCat), data=data.zoop)
-em2<- lmer(evenness~treatment + days + (1|block) + (1|TimeCat), data=data.zoop)
+data_zoop$evenness<-data_zoop$InvSimpson/data_zoop$richness
+em1<- lmer(evenness~treatment * days + (1|block) + (1|TimeCat), data=data_zoop)
+em2<- lmer(evenness~treatment + days + (1|block) + (1|TimeCat), data=data_zoop)
 (kr.b<-KRmodcomp(em1, em2)) # significant, retain the interaction
 summary(em1)
 
-em3<- lmer(evenness~days + (1|block) + (1|TimeCat), data=data.seeded)
+em3<- lmer(evenness~days + (1|block) + (1|TimeCat), data=data_seeded)
 (kr.b<-KRmodcomp(em3, em2)) # NS, remove treatment
 
-em4<- lmer(evenness~(1|block) + (1|TimeCat), data=data.seeded)
+em4<- lmer(evenness~(1|block) + (1|TimeCat), data=data_seeded)
 (kr.b<-KRmodcomp(em3, em4)) # NS, remove time
 
 dodge=position_dodge(width=0.7)
-ggplot(data.zoop, aes(x=as.integer(TimeCat), y=evenness, color=treatment))+
+ggplot(data_zoop, aes(x=as.integer(TimeCat), y=evenness, color=treatment))+
   stat_summary(fun.y = mean,geom="point",size=2,position=dodge)+
   stat_summary(fun.y = mean,geom="line",aes(group=treatment),linetype=2,position=dodge)+
   stat_summary(fun.data = mean_se,geom="errorbar",width=0.7,position=dodge)+
@@ -870,39 +867,28 @@ ggplot(data.zoop, aes(x=as.integer(TimeCat), y=evenness, color=treatment))+
   expand_limits(y = 0) +
   theme(axis.text.x = element_text(hjust=1, angle = 45, vjust=1))
 
-em1z<- lmer(evenness~treatment * Time + (1|block) + (1|TimeCat), data=data.zoop)
+em1z<- lmer(evenness~treatment * Time + (1|block) + (1|TimeCat), data=data_zoop)
 st.1e.z <- step(em1z)
 plot(st.1e.z)
 st.1e.z
 
 # visualize: density plot
-ggplot(data.zoop, aes(InvSimpson/richness))+geom_density(fill="#4271AE",alpha=0.5)+facet_grid(.~Time*treatment)+
+ggplot(data_zoop, aes(InvSimpson/richness))+geom_density(fill="#4271AE",alpha=0.5)+facet_grid(.~Time*treatment)+
   ggtitle("Evenness by Treatment, all plankton")+xlab("Simpson's E")+theme_light()+
   facet_wrap(facets=~Time*treatment,nrow=4)
 
 # box-&-whiskers plot from lattice
-bwplot(evenness~TimeCat|treatment, data=data.zoop, aspect=2,xlab=list(label="Time",cex=1.4),
+bwplot(evenness~TimeCat|treatment, data=data_zoop, aspect=2,xlab=list(label="Time",cex=1.4),
        ylab=list(label="Simpson's E",cex=1.4),scales=list(cex=1.1,x=list(rot=45)),
        par.strip.text=list(cex=1.4)) # export 600*450
 
-em3<- lmer(InvSimpson~Time + (1|block) + (1|TimeCat), data=data.zoop)
+em3<- lmer(InvSimpson~Time + (1|block) + (1|TimeCat), data=data_zoop)
 (kr.b<-KRmodcomp(em1, em3)) # significant, definitely don't remove both interaction and Time
 (kr.b<-KRmodcomp(em2, em3)) # marginally significant
 
-### Rarefied Evenness
-data.zoop$r.evenness<-data.zoop$InvSimpson/data.zoop$rarefied.S
-erm1<- lmer(r.evenness~treatment * Time + (1|block) + (1|TimeCat), data=data.zoop)
-erm2<- lmer(r.evenness~treatment + Time + (1|block) + (1|TimeCat), data=data.zoop)
-
-(kr.b<-KRmodcomp(erm1, erm2)) # significant, retain the interaction
-
-# visualize
-bwplot(r.evenness~TimeCat|treatment, data=data.zoop, aspect=2,xlab=list(label="Time",cex=1.4),
-       ylab=list(label="Rarefied Simpson's E",cex=1.4),scales=list(cex=1.1,x=list(rot=45)),
-       par.strip.text=list(cex=1.4)) # export 600*450
 
 # remove Simocephalus ----
-data.noSimo<-data.zoop
+data.noSimo<-data_zoop
 data.noSimo$Simocephalus<-NULL
 data.noSimo$nTot<-rowSums(data.noSimo[,2:17]) # columns 2:17 are individual taxon counts after restriction
 data.noSimo$richness<-rowSums(data.noSimo[,2:17]!=0)
@@ -949,17 +935,17 @@ summary(em5)
 # also removes ALL fixed effects from Simpson's E
 
 # remove Chydorus ----
-data.noChyd<-data.zoop
+data.noChyd<-data_zoop
 data.noChyd$Chydorus<-NULL
 data.noChyd$nTot<-rowSums(data.noChyd[,2:17]) # columns 2:17 are individual taxon counts after restriction
 data.noChyd$nTot
-data.zoop$nTot
+data_zoop$nTot
 data.noChyd$richness<-rowSums(data.noChyd[,2:17]!=0)
 data.noChyd$richness
-data.zoop$richness
+data_zoop$richness
 data.noChyd$InvSimpson<-1/rowSums((data.noChyd[,2:17]/data.noChyd$nTot)^2)
 data.noChyd$InvSimpson
-data.zoop$InvSimpson
+data_zoop$InvSimpson
 
 # Inverse Simpson's D
 sm1<- lmer(InvSimpson~treatment * Time + (1|block) + (1|TimeCat), data=data.noChyd)
@@ -974,17 +960,17 @@ em2<- lmer(InvSimpson/richness~treatment + Time + (1|block) + (1|TimeCat), data=
 # excluding Chydorus does NOT alter significance of differences by treatment or Time
 
 # remove Keratella ----
-data.noKera<-data.zoop
+data.noKera<-data_zoop
 data.noKera$Keratella<-NULL
 data.noKera$nTot<-rowSums(data.noKera[,2:17]) # columns 2:17 are individual taxon counts after restriction
 data.noKera$nTot
-data.zoop$nTot
+data_zoop$nTot
 data.noKera$richness<-rowSums(data.noKera[,2:17]!=0)
 data.noKera$richness
-data.zoop$richness
+data_zoop$richness
 data.noKera$InvSimpson<-1/rowSums((data.noKera[,2:17]/data.noKera$nTot)^2)
 data.noKera$InvSimpson
-data.zoop$InvSimpson
+data_zoop$InvSimpson
 
 
 # Inverse Simpson's D
@@ -1024,17 +1010,17 @@ ggplot(data.noKera, aes(x=InvSimpson/richness,fill=treatment))+geom_density(alph
 
 
 # remove Cyclopoid
-data.noCycl<-data.zoop
+data.noCycl<-data_zoop
 data.noCycl$Cyclopoid<-NULL
 data.noCycl$nTot<-rowSums(data.noCycl[,2:17]) # columns 2:17 are individual taxon counts after restriction
 data.noCycl$nTot
-data.zoop$nTot
+data_zoop$nTot
 data.noCycl$richness<-rowSums(data.noCycl[,2:17]!=0)
 data.noCycl$richness
-data.zoop$richness
+data_zoop$richness
 data.noCycl$InvSimpson<-1/rowSums((data.noCycl[,2:17]/data.noCycl$nTot)^2)
 data.noCycl$InvSimpson
-data.zoop$InvSimpson
+data_zoop$InvSimpson
 
 # Inverse Simpson's D
 sm1<- lmer(InvSimpson~treatment * Time + (1|block) + (1|TimeCat), data=data.noCycl)
@@ -1044,7 +1030,7 @@ sm2<- lmer(InvSimpson~treatment + Time + (1|block) + (1|TimeCat), data=data.noCy
 
 ggplot(data.noCycl, aes(x=InvSimpson,fill=treatment))+geom_density(alpha=0.3)+
   ggtitle("excluding Cyclopoid copepods")+coord_flip()
-ggplot(data.zoop, aes(x=InvSimpson,fill=treatment))+geom_density(alpha=0.3)+
+ggplot(data_zoop, aes(x=InvSimpson,fill=treatment))+geom_density(alpha=0.3)+
   ggtitle("with Cyclopoid copepods")+coord_flip()
 
 
@@ -1063,12 +1049,12 @@ em4<- lmer(InvSimpson~treatment + (1|block) + (1|TimeCat), data=data.noCycl)
 
 
 
-rownames(community.zoop)<-data.zoop$V1
-zoop.mds2<-metaMDS(community.zoop,k=2,trymax=80)
+rownames(community_zoop)<-data_zoop$V1
+zoop.mds2<-metaMDS(community_zoop,k=2,trymax=80)
 ### check stress plot
 stressplot(zoop.mds2)
 
-zoop.mds3<-metaMDS(community.zoop,k=3)
+zoop.mds3<-metaMDS(community_zoop,k=3)
 stressplot(zoop.mds3)
 
 ### visualize plot
@@ -1095,7 +1081,7 @@ orglpoints(zoop.mds3,display="sites",col=colors,air=0.01,cex=1.25)
 
 ## investigate chydorus, simocephalus, and keratella
 
-ggplot(data = data.zoop, aes(x = TimeCat, y = Chydorus/sample.vol.flush, col=treatment)) +
+ggplot(data = data_zoop, aes(x = TimeCat, y = Chydorus/sample_vol_flush, col=treatment)) +
   stat_summary(fun.y = mean,geom="point",size=2,position=dodge) +
   stat_summary(fun.y = mean, geom = "line", aes(group = treatment), linetype = 2, position = dodge) +
   stat_summary(fun.data = mean_se,geom="errorbar",width=0.1,position=dodge) +
@@ -1106,7 +1092,7 @@ ggplot(data = data.zoop, aes(x = TimeCat, y = Chydorus/sample.vol.flush, col=tre
   xlab("Date")
 # facet_wrap(~Species)+
 
-ggplot(data = data.zoop, aes(x = TimeCat, y = Chydorus/nTot, col=treatment)) +
+ggplot(data = data_zoop, aes(x = TimeCat, y = Chydorus/nTot, col=treatment)) +
   stat_summary(fun.y = mean,geom="point",size=2,position=dodge) +
   stat_summary(fun.y = mean, geom = "line", aes(group = treatment), linetype = 2, position = dodge) +
   stat_summary(fun.data = mean_se,geom="errorbar",width=0.1,position=dodge) +
@@ -1117,7 +1103,7 @@ ggplot(data = data.zoop, aes(x = TimeCat, y = Chydorus/nTot, col=treatment)) +
   xlab("Date")
 # facet_wrap(~Species)+
 
-ggplot(data = data.zoop, aes(x = TimeCat, y = Simocephalus/sample.vol.flush, col=treatment)) +
+ggplot(data = data_zoop, aes(x = TimeCat, y = Simocephalus/sample_vol_flush, col=treatment)) +
   stat_summary(fun.y = mean,geom="point",size=2,position=dodge) +
   stat_summary(fun.y = mean, geom = "line", aes(group = treatment), linetype = 2, position = dodge) +
   stat_summary(fun.data = mean_se,geom="errorbar",width=0.1,position=dodge) +
@@ -1128,7 +1114,7 @@ ggplot(data = data.zoop, aes(x = TimeCat, y = Simocephalus/sample.vol.flush, col
   xlab("Date")
   # facet_wrap(~Species)+
 
-ggplot(data = data.zoop, aes(x = TimeCat, y = Simocephalus/nTot, col=treatment)) +
+ggplot(data = data_zoop, aes(x = TimeCat, y = Simocephalus/nTot, col=treatment)) +
   stat_summary(fun.y = mean,geom="point",size=2,position=dodge) +
   stat_summary(fun.y = mean, geom = "line", aes(group = treatment), linetype = 2, position = dodge) +
   stat_summary(fun.data = mean_se,geom="errorbar",width=0.1,position=dodge) +
@@ -1140,7 +1126,7 @@ ggplot(data = data.zoop, aes(x = TimeCat, y = Simocephalus/nTot, col=treatment))
 # facet_wrap(~Species)+
 
 
-ggplot(data = data.zoop, aes(x = TimeCat, y = Keratella/sample.vol.flush, col=treatment)) +
+ggplot(data = data_zoop, aes(x = TimeCat, y = Keratella/sample_vol_flush, col=treatment)) +
   stat_summary(fun.y = mean,geom="point",size=2,position=dodge) +
   stat_summary(fun.y = mean, geom = "line", aes(group = treatment), linetype = 2, position = dodge) +
   stat_summary(fun.data = mean_se,geom="errorbar",width=0.1,position=dodge) +
@@ -1151,7 +1137,7 @@ ggplot(data = data.zoop, aes(x = TimeCat, y = Keratella/sample.vol.flush, col=tr
   xlab("Date")
 
 
-ggplot(data = data.zoop, aes(x = TimeCat, y = Keratella/nTot, col=treatment)) +
+ggplot(data = data_zoop, aes(x = TimeCat, y = Keratella/nTot, col=treatment)) +
   stat_summary(fun.y = mean,geom="point",size=2,position=dodge) +
   stat_summary(fun.y = mean, geom = "line", aes(group = treatment), linetype = 2, position = dodge) +
   stat_summary(fun.data = mean_se,geom="errorbar",width=0.1,position=dodge) +

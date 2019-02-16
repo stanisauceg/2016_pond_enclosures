@@ -7,11 +7,11 @@ volume<- function(d) {
 }
 
 # volume of one sample dip, assuming skirt was FLUSH not high
-dip_vol.flush<- function(d) {
+dip.vol.flush<- function(d) {
   44.683*d-192.97
 }
 # volume of one sample dip, assuming skirt was HIGH not flush
-dip_vol.hi<- function(d) {
+dip.vol.hi<- function(d) {
   42.8608*d-132.4778
 }
 
@@ -33,8 +33,8 @@ sample.vol.flush<-function(depth,ndips=3){
   collected=0
   for(i in 1:ndips){
     vol.start<-volume(d) # get enclosure volume from depth
-    v.sample<-dip_vol.flush(d) # how much did I scoop out?
-    collected<-collected+dip_vol.flush(d) # track total collected so far
+    v.sample<-dip.vol.flush(d) # how much did I scoop out?
+    collected<-collected+dip.vol.flush(d) # track total collected so far
     d<-numeric.depth(new.depth(d.start=d,v.sample=v.sample)) # update depth
     # print(d)
   }
@@ -47,8 +47,8 @@ sample.vol.hi<-function(depth,ndips=3){
   collected=0
   for(i in 1:ndips){
     vol.start<-volume(d) # get enclosure volume from depth
-    v.sample<-dip_vol.hi(d) # how much did I scoop out?
-    collected<-collected+dip_vol.hi(d) # track total collected so far
+    v.sample<-dip.vol.hi(d) # how much did I scoop out?
+    collected<-collected+dip.vol.hi(d) # track total collected so far
     d<-numeric.depth(new.depth(d.start=d,v.sample=v.sample)) # update depth
     # print(d)
   }
